@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>loader</title></head>
+<body>
+<canvas id="game" width="1280" height="720"></canvas>
+<script>
+// Capture errors from the very first frame, before any module is evaluated.
+window.__errs=[];
+const oe=console.error.bind(console);
+console.error=(...a)=>{window.__errs.push({type:'error',args:a.map(String)});oe(...a);};
+window.onerror=(m,u,l,c,e)=>{window.__errs.push({type:'uncaught',m:String(m),u:String(u),l:l});return true;};
+window.onunhandledrejection=(e)=>{window.__errs.push({type:'rejection',r:String(e&&e.reason&&e.reason.message||e.reason)});};
+</script>
+<script type="module">
+import {STEP} from './src/config.js';
+import {createWorld} from './src/world.js';
+import {createRenderer} from './src/render.js';
+import {createRandom} from './src/random.js';
+import {stageShot} from './src/shots.js';
+
+const params = new URLSearchParams(location.search);
+const shot = params.get('shot');
+
+const world = createWorld(createRandom(1));
+const canvas = document.getElementById('game');
+const renderer = createRenderer(canvas);
+renderer.resize();
+
+try {
+  if (shot) {
+    stageShot(shot, world); // runs the simulation synchronously
+    const st = world.state();
+    renderer.draw(st, shot === 'end' && st.player.health <= 0 ? 'over' : 'play', 0); // validate drawing
+  } else {
+    const input = { throttle: () => 0, steer: () => 0, takeActions: () => 0 };
+    for (let i = 0; i < 600; i += 1) world.step(STEP, input); // 10 s of simulation
+    renderer.draw(world.state(), 'play', 0); // validate drawing
+  }
+  console.log('LOADER_DONE');
+} catch (e) {
+  window.__errs.push({type:'thrown', m:String(e.message), stack:String(e.stack)});
+  console.log('LOADER_THREW', e.message);
+}
+setTimeout(() => { console.log('LOADER_ERRS', JSON.stringify(window.__errs)); }, 300);
+</script>
+</body></html>
