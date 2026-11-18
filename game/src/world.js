@@ -178,6 +178,11 @@ export function createWorld(random) {
   player.invulnerable = 2.0; // 2 seconds invulnerable on start
   player.wantedSight = 0;
   player.sidewalkTimer = 0;
+  // Ensure player doesn't spawn overlapping a building (car is 44x26, center-based; buildings are top-left)
+  for (let attempt = 0; attempt < 10 && buildings.some(b => overlapsRect({ x: player.x - player.w / 2, y: player.y - player.h / 2, w: player.w, h: player.h }, b)); attempt += 1) {
+    const s = pointOnRoad(random, roads);
+    player.x = s.x; player.y = s.y;
+  }
 
   for (let i = 0; i < TRAFFIC.count; i += 1) {
     const p = pointOnRoadNetwork(random, roads);
@@ -283,15 +288,18 @@ export function createWorld(random) {
     if (player.invulnerable > 0) player.invulnerable = Math.max(0, player.invulnerable - dt);
 
     // building collision
-    let hitBuilding = false;
-    for (const b of buildings) { if (overlapsRect(player, b)) { hitBuilding = true; break; } }
-    if (hitBuilding) {
-      player.x = prevX; player.y = prevY; player.speed *= 0.25;
-      player.health = Math.max(0, player.health - 8 * dt * 60);
-      events |= EVENT_HIT_BUILDING;
-      player.wanted = Math.min(5, player.wanted + WANTED.gainHitBuilding);
-      if (player.health <= 0) events |= EVENT_OVER;
-    }
+        let hitBuilding = false;
+        for (const b of buildings) { if (overlapsRect(player, b)) { hitBuilding = true; break; } }
+        if (hitBuilding && player.invulnerable <= 0) {
+          player.x = prevX; player.y = prevY; player.speed *= 0.25;
+          player.health = Math.max(0, player.health - 8 * dt * 60);
+          events |= EVENT_HIT_BUILDING;
+          player.wanted = Math.min(5, player.wanted + WANTED.gainHitBuilding);
+          if (player.health <= 0) events |= EVENT_OVER;
+        } else if (hitBuilding) {
+          player.x = prevX; player.y = prevY; player.speed *= 0.25;
+          events |= EVENT_HIT_BUILDING;
+        }
 
     // sidewalk wanted
     let onSidewalk = false;
@@ -316,14 +324,19 @@ export function createWorld(random) {
           if (len < minDist) {
             player.x = e.x + nx * minDist; player.y = e.y + ny * minDist;
             player.speed *= -0.5; e.speed *= 0.6;
-            player.health = Math.max(0, player.health - 14 * dt * 60);
+            if (player.invulnerable <= 0) {
+              player.health = Math.max(0, player.health - 14 * dt * 60);
+              if (player.health <= 0) events |= EVENT_OVER;
+            }
             events |= e.kind === KIND_POLICE ? EVENT_HIT_COP : EVENT_HIT_CAR;
             player.wanted = Math.min(5, player.wanted + (e.kind === KIND_POLICE ? WANTED.gainHitCop : WANTED.gainHitCar));
-            if (player.health <= 0) events |= EVENT_OVER;
           }
         } else if (e.kind === KIND_PEDESTRIAN) {
           e.active = false;
-          player.health = Math.max(0, player.health - 4 * dt * 60);
+          if (player.invulnerable <= 0) {
+            player.health = Math.max(0, player.health - 4 * dt * 60);
+            if (player.health <= 0) events |= EVENT_OVER;
+          }
           events |= EVENT_HIT_PED;
           player.wanted = Math.min(5, player.wanted + WANTED.gainHitPed);
         } else if (e.kind === KIND_CASH) {
@@ -392,9 +405,11 @@ export function createWorld(random) {
       driveAI(c, dt, player.x, player.y, c.maxSpeed, player);
       clampCar(c);
       if (dist2(c.x, c.y, player.x, player.y) < 30 * 30) {
-        player.health = Math.max(0, player.health - POLICE.ramDamage * dt * 60);
+        if (player.invulnerable <= 0) {
+          player.health = Math.max(0, player.health - POLICE.ramDamage * dt * 60);
+          if (player.health <= 0) events |= EVENT_OVER;
+        }
         events |= EVENT_HIT_COP;
-        if (player.health <= 0) events |= EVENT_OVER;
       }
     }
 
