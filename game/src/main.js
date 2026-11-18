@@ -4,7 +4,8 @@
 //
 // ?seed=N fixes the procedural city/pattern. ?shot=start|play|chase|end (with &seed=N) stages
 // that screenshot scene instead of running the loop and sets window.__shotReady.
-import { BEST_KEY, STEP, SCREEN_TITLE, SCREEN_PLAY, SCREEN_OVER, EVENT_HIT_BUILDING, EVENT_HIT_CAR, EVENT_HIT_PED, EVENT_HIT_COP, EVENT_CASH, EVENT_MISSION, EVENT_OVER } from './config.js';
+import { BEST_KEY, STEP, SCREEN_TITLE, SCREEN_PLAY, SCREEN_OVER } from './config.js';
+import { EVENT_HIT_BUILDING, EVENT_HIT_CAR, EVENT_HIT_PED, EVENT_HIT_COP, EVENT_CASH, EVENT_MISSION, EVENT_OVER } from './world.js';
 import { createRandom } from './random.js';
 import { createWorld } from './world.js';
 import { ACTION_CONFIRM, ACTION_PAUSE, createInput } from './input.js';

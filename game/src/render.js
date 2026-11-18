@@ -201,12 +201,15 @@ export function createRenderer(canvas) {
         else if (e.kind === 5) drawMission(e);
       }
       const p = state.player;
-      if (p.active && p.health > 0) {
-        const blink = p.invulnerable > 0 && Math.floor(p.invulnerable * 10) % 2 === 0;
-        if (!blink) drawCar(p, p.wanted >= 2 ? PALETTE.playerWanted : PALETTE.player);
-      }
-      drawHud(state, best);
-      if (screen === SCREEN_TITLE) {
+            if (p.active && p.health > 0) {
+              const blink = p.invulnerable > 0 && Math.floor(p.invulnerable * 10) % 2 === 0;
+              if (!blink) drawCar(p, p.wanted >= 2 ? PALETTE.playerWanted : PALETTE.player);
+            }
+            // Only draw HUD during actual gameplay (play or paused)
+            if (screen === SCREEN_PLAY || screen === 'paused') {
+              drawHud(state, best);
+            }
+            if (screen === SCREEN_TITLE) {
         drawPanel('Neo-City Stories', [...TITLE_LINES, '', 'Best $' + (best || 0)], 'Press Space to start');
       } else if (screen === 'paused') {
         drawPanel('Paused', ['The city waits for you.'], 'Press P to resume');

@@ -97,6 +97,29 @@ function newPedestrian(x, y) {
 function newCash(x, y) { return { kind: KIND_CASH, x, y, w: 10, h: 10, active: true, value: MONEY.cashValue, bob: Math.random() * 6.28 }; }
 function newMissionMarker(x, y, text) { return { kind: KIND_MISSION, x, y, w: 14, h: 14, active: true, text, bob: Math.random() * 6.28 }; }
 
+function pointOnRoad(random, roads) {
+  // Find the road closest to center
+  let bestRoad = null;
+  let bestDist = Infinity;
+  for (const r of roads) {
+    let dist;
+    if (r.vertical) {
+      dist = Math.abs(r.x + r.w / 2 - FIELD.width / 2);
+    } else {
+      dist = Math.abs(r.y + r.h / 2 - FIELD.height / 2);
+    }
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestRoad = r;
+    }
+  }
+  if (!bestRoad) return { x: FIELD.width / 2, y: FIELD.height / 2 };
+  if (bestRoad.vertical) {
+    return { x: bestRoad.x + bestRoad.w / 2, y: FIELD.height / 2 };
+  }
+  return { x: FIELD.width / 2, y: bestRoad.y + bestRoad.h / 2 };
+}
+
 function pointOnRoadNetwork(random, roads) {
   const r = pick(roads, random);
   if (r.vertical) return { x: r.x + r.w / 2 + (random() - 0.5) * 30, y: random() * FIELD.height };
@@ -146,12 +169,13 @@ export function createWorld(random) {
   const { roads, sidewalks, buildings } = city;
   const entities = [];
 
-  const player = newCar(KIND_PLAYER, FIELD.width / 2, FIELD.height / 2, -Math.PI / 2, 0, CAR.maxSpeed);
+  const spawn = pointOnRoad(random, roads);
+  const player = newCar(KIND_PLAYER, spawn.x, spawn.y, -Math.PI / 2, 0, CAR.maxSpeed);
   player.health = CAR.health;
   player.cash = 120;
   player.score = 120;
   player.wanted = 0;
-  player.invulnerable = 0;
+  player.invulnerable = 2.0; // 2 seconds invulnerable on start
   player.wantedSight = 0;
   player.sidewalkTimer = 0;
 
@@ -238,10 +262,11 @@ export function createWorld(random) {
       const p = pointOnSidewalk(random, sidewalks);
       entities.push(newCash(p.x, p.y));
     }
-    player.x = FIELD.width / 2; player.y = FIELD.height / 2; player.angle = -Math.PI / 2;
-    player.speed = 0; player.health = CAR.health; player.cash = 120; player.score = 120;
-    player.wanted = 0; player.invulnerable = 0; player.wantedSight = 0; player.sidewalkTimer = 0;
-    player.active = true;
+    const spawn = pointOnRoad(random, roads);
+        player.x = spawn.x; player.y = spawn.y; player.angle = -Math.PI / 2;
+        player.speed = 0; player.health = CAR.health; player.cash = 120; player.score = 120;
+        player.wanted = 0; player.invulnerable = 2.0; player.wantedSight = 0; player.sidewalkTimer = 0;
+        player.active = true;
     mission = null; missionNext = 0; missionTextTimer = 0;
     setMission();
   }
